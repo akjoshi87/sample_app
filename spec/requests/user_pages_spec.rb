@@ -3,6 +3,56 @@ require 'spec_helper'
 describe "UserPages" do
 	subject { page }
 	
+	describe "index" do
+	let(:myUser) { FactoryGirl.create(:user) }
+
+		before(:all) do
+			30.times { FactoryGirl.create(:user) }
+		end
+
+		after(:all) do
+			User.delete_all
+		end
+	
+		before(:each) do
+			sign_in myUser
+			visit users_path
+		end
+		
+		it { should have_selector('title', text: 'All users') }
+		it { should have_selector('h1', text: 'All users') }
+		
+		describe "pagination" do
+			it "should list each user" do
+				User.paginate(page: 1).each do |user|
+					page.should have_selector('li>a', text: user.name)
+				end
+			end
+		
+			it { should have_selector('div.pagination') }
+		end
+		
+		describe "delete links" do
+			it { should_not have_link('delete') }
+			
+			describe "as an admin user" do
+				let(:myAdmin) { FactoryGirl.create(:admin) }
+				
+				before do
+					sign_in myAdmin
+					visit users_path
+				end			
+				
+				it { should have_link('delete', href: user_path(User.first)) }
+				it { should_not have_link('delete', href: user_path(myAdmin)) }
+
+				it "should be able to delete another user" do
+					expect { click_link('delete') }.to change(User, :count).by(-1)
+				end
+			end
+		end
+	end
+	
 	describe "signup page" do
 		before {visit signup_path}
 		
@@ -59,6 +109,44 @@ describe "UserPages" do
 				it { should have_selector('div.alert.alert-success', text: 'Welcome') }
 				it { should have_link('Sign out') }
 			end
+		end
+	end
+	
+	describe "edit" do
+		let(:myUser) { FactoryGirl.create(:user) }
+		before do
+			sign_in(myUser)
+			visit edit_user_path(myUser)
+		end
+		
+		describe "page" do	
+			it { should have_selector('h1', text: "Update your profile") }
+			it { should have_selector('title', text: "Edit user") }
+			it { should have_link('change', href: 'http://gravatar.com/emails') }
+		end
+		
+		describe "with invalid information" do
+			before { click_button "Save changes" }
+			it { should have_content('error') }
+		end
+		
+		describe "with valid information" do
+			let(:new_name) {  "Name Mangler" }
+			let(:new_email) {  "new@example.com" }
+
+			before do
+				fill_in "Name", with: new_name
+				fill_in "Email", with: new_email
+				fill_in "Password", with: myUser.password
+				fill_in "Confirm Password", with: myUser.password
+				click_button "Save changes"				
+			end
+			
+			it { should have_selector('title', text: new_name) }
+			it { should have_link('Sign out', href: signout_path) }
+			it { should have_selector('div.alert.alert-success') }
+			specify { myUser.reload.name.should == new_name }
+			specify { myUser.reload.email.should == new_email }
 		end
 	end
 end
