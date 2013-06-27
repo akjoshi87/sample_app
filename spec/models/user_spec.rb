@@ -29,6 +29,11 @@ describe User do
   		end.to raise_error(ActiveModel::MassAssignmentSecurity::Error)
   	end
   end
+
+  describe "with admin attribute set to 'true'" do
+  	before { @user.toggle!(:admin)}
+  	it { should be_admin }
+  end
   
   describe "when name is not present" do
   	before { @user.name= " " }
