@@ -10,7 +10,23 @@ describe "Static Pages" do
 
 	it { should have_selector('h1',text: 'Sample App') }  
 	it { should have_selector('title', text: full_title('')) }  
-	it { should_not have_selector('title', text: '| Home')}  
+	it { should_not have_selector('title', text: '| Home')} 
+	
+	describe "for signed=in users" do
+		let(:myUser) { FactoryGirl.create(:user) }
+		before do
+			FactoryGirl.create(:micropost, user: myUser, content: "Who cares")
+			FactoryGirl.create(:micropost, user: myUser, content: "Seriously, who does??")
+			sign_in myUser
+			visit root_path
+		end
+		
+		it "should render the user's feed" do
+			myUser.feed.each do |item|
+				page.should have_selector("li##{item.id}", text: item.content)				
+			end
+		end
+	end 
   end
 
   describe "Help page" do
