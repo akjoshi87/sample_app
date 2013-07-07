@@ -26,6 +26,17 @@ describe "Static Pages" do
 				page.should have_selector("li##{item.id}", text: item.content)				
 			end
 		end
+
+		describe "follower/following count" do
+			let(:other_user) { FactoryGirl.create(:user) }
+			before do 
+				other_user.follow!(myUser)
+				visit root_path
+			end
+
+			it { should have_link("0 following", href: following_user_path(myUser))}
+			it { should have_link("1 followers", href: followers_user_path(myUser))}
+		end
 	end 
   end
 
